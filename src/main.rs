@@ -12,9 +12,13 @@ struct Opt{
     #[structopt(short="-i", long="--input")]
     gerber_file: String,
 
-    /// The SVG output file
+    /// The SVG output file (otherwise SVG will be print on standard output)
     #[structopt(short="-o", long="--output")]
-    svg_file: String,
+    svg_file: Option<String>,
+
+    /// Crop the SVG to remove unnecessary space.
+    #[structopt(short="-c", long="--crop")]
+    crop: bool,
 
     /// Be more verbose and show gerber comments
     #[structopt(short="-v", long="--verbose")]
@@ -41,8 +45,14 @@ pub fn main() -> Result<(), std::io::Error>{
     log::info!("Load gerber file...");
     let gerber = Gerber2SVG::from_file(opt.gerber_file.as_str())?;
 
-    log::info!("Save SVG file...");
-    gerber.save_svg(&opt.svg_file.as_str())?;
+    if opt.svg_file.is_some(){
+        log::info!("Save SVG file...");
+        gerber.save_svg(&opt.svg_file.unwrap().as_str(), opt.crop)?;
+    }
+    else {
+        log::info!("Print SVG file...");
+        gerber.to_string(opt.crop);
+    }
 
     Ok(())
 }

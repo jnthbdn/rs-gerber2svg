@@ -44,11 +44,19 @@ impl Gerber2SVG {
         return s;
     }
 
-    pub fn save_svg(&self, filename: &str) -> std::io::Result<()> {
+    pub fn save_svg(&self, filename: &str, crop: bool) -> std::io::Result<()> {
+        if crop{
+            log::warn!("Crop is not supported");
+        }
+
         svg::save(filename, &self.svg_document)
     }
 
-    pub fn to_string(&self) -> String {
+    pub fn to_string(&self, crop: bool) -> String {
+        if crop{
+            log::warn!("Crop is not supported");
+        }
+
         self.svg_document.to_string()
     }
 
