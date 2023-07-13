@@ -7,19 +7,16 @@ use gerber_types::{Aperture, Command, Coordinates, GCode, InterpolationMode};
 use gerber_types::{CoordinateOffset, FunctionCode};
 
 use svg;
-// use svg::node::element::Path;
 use svg::node::element::{path, Circle, Path, Rectangle};
 
 mod point;
 use crate::point::Point;
 
 pub struct Gerber2SVG {
-    //Gerber fields
     draw_state: InterpolationMode,
     position: Point,
     selected_aperture: Option<Aperture>,
 
-    // SVG fields
     svg_document: svg::Document,
     current_path_data: path::Data,
 }
