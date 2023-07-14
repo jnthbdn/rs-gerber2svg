@@ -10,7 +10,8 @@ Le fichier SVG produit n'est **pas** un 'path' unique, mais un esemble de de che
 :warning: **this work is in progress**, please be kind :innocent:
 
 ## Usage
-To Do
+To Do  
+`gerber2svg --help`
 
 ## Example
 To Do
