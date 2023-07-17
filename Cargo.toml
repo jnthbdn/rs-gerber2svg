@@ -1,6 +1,6 @@
 [package]
 name = "gerber2svg"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "Apache-2.0 OR MIT"
 description = "Gerber2Svg is a library and utility, used to convert a Gerber (x2 or x3) file into an SVG file."

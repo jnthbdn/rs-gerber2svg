@@ -20,6 +20,10 @@ struct Opt{
     #[structopt(short="-c", long="--crop")]
     crop: bool,
 
+    /// Scale the path and apertures
+    #[structopt(short="-s", long="--scale", default_value="1.0")]
+    scale: f32,
+
     /// Be more verbose and show gerber comments
     #[structopt(short="-v", long="--verbose")]
     verbose: bool,
@@ -43,7 +47,7 @@ pub fn main() -> Result<(), std::io::Error>{
     }
 
     log::info!("Load gerber file...");
-    let gerber = Gerber2SVG::from_file(opt.gerber_file.as_str())?;
+    let mut gerber = Gerber2SVG::from_file(opt.gerber_file.as_str())?.set_scale(opt.scale).build();
 
     if opt.svg_file.is_some(){
         log::info!("Save SVG file...");
