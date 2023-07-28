@@ -227,7 +227,7 @@ impl Gerber2SVG {
             Self::coordinate_offset_to_float(offset)
         );
         log::warn!("Arc are not supported ! Skip.",);
-        //TODO : self.check_bbox(target.0, target.1, stroke / 2.0, stroke / 2.0);
+        //TODO : self.check_bbox(...);
     }
 
     fn move_position(&mut self, coord: &Coordinates) -> () {
@@ -242,7 +242,14 @@ impl Gerber2SVG {
             return;
         }
 
-        let stroke = self.get_path_stroke();
+        let mut stroke = self.get_path_stroke(); // * (self.scale * 2.0);
+
+        if self.scale > 1.0 {
+            stroke *= 2.0;
+        }
+        else if self.scale < 1.0 {
+            stroke /= 2.0;
+        }
 
         let data = std::mem::replace(&mut self.current_path_data, path::Data::new());
         let svg = std::mem::replace(&mut self.svg_document, svg::Document::new());
@@ -250,7 +257,7 @@ impl Gerber2SVG {
         let path = Path::new()
             .set("fill", "none")
             .set("stroke", "white")
-            .set("stroke-width", stroke * self.scale)
+            .set("stroke-width", stroke)
             .set("d", data);
 
         self.svg_document = svg.add(path);
