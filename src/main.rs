@@ -55,7 +55,7 @@ pub fn main() -> Result<(), std::io::Error>{
     }
     else {
         log::info!("Print SVG file...");
-        println!("{}", gerber.to_string(opt.crop));
+        println!("{}", gerber.as_string(opt.crop));
     }
 
     Ok(())
