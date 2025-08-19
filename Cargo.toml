@@ -17,12 +17,11 @@ path = "src/main.rs"
 [lib]
 name = "gerber2svg"
 path = "src/lib.rs"
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-gerber-types = "0.2.0"
-gerber_parser = "0.1.2"
+gerber_parser = "0.3.1"
 log = "0.4.19"
 simple_logger = "4.2.0"
 structopt = { version = "0.3.26", features = ["color", "suggestions", "wrap_help"] }
 svg = "0.13.1"
+thiserror = "2.0.15"
