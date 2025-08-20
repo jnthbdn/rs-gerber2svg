@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::BufReader;
 
-use gerber_parser::gerber_types::{self, Aperture, Command, GCode, InterpolationMode};
+use gerber_parser::gerber_types::{self, Aperture, Command, GCode, InterpolationMode, Unit};
 use gerber_parser::gerber_types::{CoordinateOffset, FunctionCode};
 use gerber_parser::{parse, GerberDoc};
 
@@ -15,9 +15,12 @@ use geometry::point::Point;
 pub mod error;
 use crate::error::{ExportError, Gerber2SvgError, ImportError};
 
+const SVG_COLOR_ELEMENT: &str = "black";
+
 #[derive(Debug)]
 pub struct Gerber2SVG {
     gerber_doc: GerberDoc,
+    unit: Unit,
     scale: f32,
 
     draw_state: InterpolationMode,
@@ -58,24 +61,26 @@ impl Gerber2SVG {
     /// Create Instance form GerberDoc struct
     /// * gerber_doc: `GerberDoc` struct
     pub fn from_gerber_doc(gerber_doc: GerberDoc) -> Result<Self, ImportError> {
-        let s = Self {
-            gerber_doc: gerber_doc,
-            scale: 1.0,
-            draw_state: InterpolationMode::Linear,
-            position: Point::new(0.0, 0.0),
-            selected_aperture: None,
-            svg_document: svg::Document::new(), //.set("viewbox", (0, 0, 80, 80)),
-            current_path_data: path::Data::new(),
-            min_x: f64::INFINITY,
-            max_x: f64::NEG_INFINITY,
-            min_y: f64::INFINITY,
-            max_y: f64::NEG_INFINITY,
-        };
-
-        if s.gerber_doc.format_specification.is_none() {
+        if gerber_doc.format_specification.is_none() {
             Err(ImportError::MissingCoordinatesFormat)
+        } else if gerber_doc.units.is_none() {
+            Err(ImportError::MissingUnit)
         } else {
-            Ok(s)
+            let unit = gerber_doc.units.clone().unwrap();
+            Ok(Self {
+                gerber_doc: gerber_doc,
+                unit,
+                scale: 1.0,
+                draw_state: InterpolationMode::Linear,
+                position: Point::new(0.0, 0.0),
+                selected_aperture: None,
+                svg_document: svg::Document::new(),
+                current_path_data: path::Data::new(),
+                min_x: f64::INFINITY,
+                max_x: f64::NEG_INFINITY,
+                min_y: f64::INFINITY,
+                max_y: f64::NEG_INFINITY,
+            })
         }
     }
 
@@ -109,13 +114,6 @@ impl Gerber2SVG {
     /// Build the SVG
     pub fn build(mut self) -> Self {
         log::debug!("Start building...");
-        // for c in self.gerber_doc.commands.iter().filter_map(|x| {
-        //     if x.is_ok() {
-        //         Some(x.as_ref().unwrap())
-        //     } else {
-        //         None
-        //     }
-        // }) {
         for i in 0..self.gerber_doc.commands.len() {
             if self.gerber_doc.commands[i].is_err() {
                 continue;
@@ -155,13 +153,11 @@ impl Gerber2SVG {
                                     warn!("D02 (Move) operation without coordinates is not allowed. Operation skipped.");
                                     continue;
                                 }
-
-                                log::debug!("Move to {:?}, create path.", &m);
+                                let target =
+                                    Point::from_coordinates(m.clone().unwrap(), &self.position);
+                                log::debug!("Move to {:?}, create path.", target);
                                 self.create_path_from_data();
-                                self.move_position(&Point::from_coordinates(
-                                    m.unwrap(),
-                                    &self.position,
-                                ));
+                                self.move_position(&target);
                             }
                             gerber_types::Operation::Flash(f) => {
                                 let pts = Point::from_option_coordinates(f.clone(), &self.position);
@@ -218,10 +214,10 @@ impl Gerber2SVG {
             Aperture::Circle(c) => {
                 let radius = (c.diameter / 2.0) * self.scale as f64;
                 let circle = Circle::new()
-                    .set("cx", target.x)
-                    .set("cy", target.y)
+                    .set("cx", self.with_unit(target.x))
+                    .set("cy", self.with_unit(target.y))
                     .set("r", radius)
-                    .set("fill", "white");
+                    .set("fill", SVG_COLOR_ELEMENT);
                 doc = doc.add(circle);
                 self.check_bbox(target.x, target.y, radius, radius);
             }
@@ -232,11 +228,11 @@ impl Gerber2SVG {
                 let y = target.y - height / 2.0;
 
                 let rect = Rectangle::new()
-                    .set("x", x)
-                    .set("y", y)
-                    .set("width", width)
-                    .set("height", height)
-                    .set("fill", "white");
+                    .set("x", self.with_unit(x))
+                    .set("y", self.with_unit(y))
+                    .set("width", self.with_unit(width))
+                    .set("height", self.with_unit(height))
+                    .set("fill", SVG_COLOR_ELEMENT);
                 doc = doc.add(rect);
                 self.check_bbox(target.x, target.y, width / 2.0, height / 2.0);
             }
@@ -292,8 +288,8 @@ impl Gerber2SVG {
 
         let path = Path::new()
             .set("fill", "none")
-            .set("stroke", "white")
-            .set("stroke-width", stroke)
+            .set("stroke", SVG_COLOR_ELEMENT)
+            .set("stroke-width", self.with_unit(stroke))
             .set("d", data);
 
         self.svg_document = svg.add(path);
@@ -391,21 +387,46 @@ impl Gerber2SVG {
         let mut doc = std::mem::replace(&mut self.svg_document, svg::Document::new());
 
         if crop {
-            log::debug!("Crop enable");
-            doc = doc.set(
-                "viewbox",
-                (
-                    self.min_x,
-                    self.min_y,
-                    self.max_x - self.min_x,
-                    self.max_y - self.min_y,
-                ),
-            );
+            log::info!("Crop enable");
+            doc = doc
+                // .set(
+                //     "viewbox",
+                //     (
+                //         format!("{}{}", self.min_x, unit),
+                //         format!("{}{}", self.min_y, unit),
+                //         format!("{}{}", self.max_x - self.min_x, unit),
+                //         format!("{}{}", self.max_y - self.min_y, unit),
+                //     ),
+                // )
+                .set("width", self.with_unit(self.max_x - self.min_x))
+                .set("height", self.with_unit(self.max_y - self.min_y));
         } else {
             log::debug!("Crop disable");
-            doc = doc.set("viewbox", (0, 0, self.max_x, self.max_y));
+            doc = doc
+                // .set(
+                //     "viewbox",
+                //     (
+                //         0,
+                //         0,
+                //         format!("{}{}", self.max_x, unit),
+                //         format!("{}{}", self.max_y, unit),
+                //     ),
+                // )
+                .set("width", self.with_unit(self.max_x))
+                .set("height", self.with_unit(self.max_y));
         }
 
         self.svg_document = doc;
+    }
+
+    fn with_unit(&self, val: f64) -> String {
+        format!(
+            "{}{}",
+            val,
+            match self.unit {
+                Unit::Inches => "in",
+                Unit::Millimeters => "mm",
+            }
+        )
     }
 }
