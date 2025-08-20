@@ -13,7 +13,7 @@ The SVG output preserves the units defined in the source Gerber file. However, c
 > - [Gerber Viewer](https://gerber-viewer.ucamco.com/): official online viewer for Gerber files.
   
   
-:warning: **This work is in progress**, please be kind :innocent:
+⚠️ **This work is in progress**, so please be kind 😇. If you discover any bug or mistake, feel free to open an issue or submit a PR! Even typo fixes are welcome 😛
 
 ## Usage
 Command to display help:
@@ -29,3 +29,24 @@ Command to display help:
 | -h           | --help                | No       | Prints help information                                               |
 | -V           | --version             | No       | Prints version information                                            |
 | -v           | --verbose             | No       | Be more verbose and show gerber comments                              |
+
+With any option other than `--input` or `-i`, the SVG will be printed to standard output.
+
+## To Do
+
+| Task                          | Status |
+| ----------------------------- | ------ |
+| Upgrade `gerber_parser`       | 🟢    |
+| Test with new `gerber_parser` | 🟠    |
+| Support Arc segment           | 🟠    |
+| Test arc                      | 🔴    |
+| Test scale                    | 🔴    |
+| Support Region Mode           | 🔴    |
+| Support Quadrant Mode         | 🔴    |
+| Support Exetnded Code         | ❓    |
+| Support Obround aperture      | 🔴    |
+| Support Polygon aperture      | 🔴    |
+| Support Macro aperture        | 🔴    |
+| Finish this list...           | 🔴    |
+
+
