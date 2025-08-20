@@ -6,7 +6,7 @@ use structopt::StructOpt;
 
 #[allow(dead_code)]
 #[derive(Debug, StructOpt)]
-#[structopt(name = "rusty-pcb", about = "Usage of rusty-pcb", version = "0.1.0")]
+#[structopt(name = "rusty-pcb", about = "Usage of rusty-pcb")]
 struct Opt {
     /// The Gerber file
     #[structopt(short = "-i", long = "--input")]
