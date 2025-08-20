@@ -138,9 +138,7 @@ impl Gerber2SVG {
                                     self.add_draw_segment(&target);
                                 } else {
                                     if offset.is_none() {
-                                        warn!(
-                                            "Offset is required in Counter/Clockwise Circular mode"
-                                        );
+                                        warn!("Offset is required in Counter/Clockwise Circular mode. Operation skipped.");
                                         continue;
                                     }
                                     self.add_arc_segment(&target, offset.as_ref().unwrap())
@@ -192,12 +190,6 @@ impl Gerber2SVG {
     }
 
     fn place_aperture(&mut self, target: &Point) -> () {
-        // let target = Self::coordinate_to_float(coord);
-        // let target = (
-        //     target.0.unwrap_or(self.position.x),
-        //     target.1.unwrap_or(self.position.y),
-        // );
-
         let mut doc = std::mem::replace(&mut self.svg_document, svg::Document::new());
 
         log::debug!(
@@ -214,8 +206,8 @@ impl Gerber2SVG {
             Aperture::Circle(c) => {
                 let radius = (c.diameter / 2.0) * self.scale as f64;
                 let circle = Circle::new()
-                    .set("cx", self.with_unit(target.x))
-                    .set("cy", self.with_unit(target.y))
+                    .set("cx", target.x)
+                    .set("cy", target.y)
                     .set("r", radius)
                     .set("fill", SVG_COLOR_ELEMENT);
                 doc = doc.add(circle);
@@ -228,10 +220,10 @@ impl Gerber2SVG {
                 let y = target.y - height / 2.0;
 
                 let rect = Rectangle::new()
-                    .set("x", self.with_unit(x))
-                    .set("y", self.with_unit(y))
-                    .set("width", self.with_unit(width))
-                    .set("height", self.with_unit(height))
+                    .set("x", x)
+                    .set("y", y)
+                    .set("width", width)
+                    .set("height", height)
                     .set("fill", SVG_COLOR_ELEMENT);
                 doc = doc.add(rect);
                 self.check_bbox(target.x, target.y, width / 2.0, height / 2.0);
@@ -289,7 +281,7 @@ impl Gerber2SVG {
         let path = Path::new()
             .set("fill", "none")
             .set("stroke", SVG_COLOR_ELEMENT)
-            .set("stroke-width", self.with_unit(stroke))
+            .set("stroke-width", stroke)
             .set("d", data);
 
         self.svg_document = svg.add(path);
@@ -312,70 +304,6 @@ impl Gerber2SVG {
         };
     }
 
-    // fn coordinate_to_float(coord: &Coordinates) -> (Option<f32>, Option<f32>) {
-    //     let mut result: (Option<f32>, Option<f32>) = (None, None);
-
-    //     if coord.x.is_some() {
-    //         result.0 = Some(
-    //             coord
-    //                 .x
-    //                 .unwrap()
-    //                 .gerber(&coord.format)
-    //                 .unwrap()
-    //                 .parse::<f32>()
-    //                 .unwrap()
-    //                 / 10_f32.powi(coord.format.decimal as i32),
-    //         );
-    //     }
-
-    //     if coord.y.is_some() {
-    //         result.1 = Some(
-    //             coord
-    //                 .y
-    //                 .unwrap()
-    //                 .gerber(&coord.format)
-    //                 .unwrap()
-    //                 .parse::<f32>()
-    //                 .unwrap()
-    //                 / 10_f32.powi(coord.format.decimal as i32),
-    //         )
-    //     }
-
-    //     return result;
-    // }
-
-    // fn coordinate_offset_to_float(coord: &CoordinateOffset) -> (Option<f32>, Option<f32>) {
-    //     let mut result: (Option<f32>, Option<f32>) = (None, None);
-
-    //     if coord.x.is_some() {
-    //         result.0 = Some(
-    //             coord
-    //                 .x
-    //                 .unwrap()
-    //                 .gerber(&coord.format)
-    //                 .unwrap()
-    //                 .parse::<f32>()
-    //                 .unwrap()
-    //                 / 10_f32.powi(coord.format.decimal as i32),
-    //         );
-    //     }
-
-    //     if coord.y.is_some() {
-    //         result.1 = Some(
-    //             coord
-    //                 .y
-    //                 .unwrap()
-    //                 .gerber(&coord.format)
-    //                 .unwrap()
-    //                 .parse::<f32>()
-    //                 .unwrap()
-    //                 / 10_f32.powi(coord.format.decimal as i32),
-    //         )
-    //     }
-
-    //     return result;
-    // }
-
     fn check_bbox(&mut self, pos_x: f64, pos_y: f64, stroke_x: f64, stroke_y: f64) {
         self.min_x = f64::min(pos_x - stroke_x, self.min_x);
         self.max_x = f64::max(pos_x + stroke_x, self.max_x);
@@ -389,29 +317,21 @@ impl Gerber2SVG {
         if crop {
             log::info!("Crop enable");
             doc = doc
-                // .set(
-                //     "viewbox",
-                //     (
-                //         format!("{}{}", self.min_x, unit),
-                //         format!("{}{}", self.min_y, unit),
-                //         format!("{}{}", self.max_x - self.min_x, unit),
-                //         format!("{}{}", self.max_y - self.min_y, unit),
-                //     ),
-                // )
+                .set(
+                    "viewbox",
+                    (
+                        self.min_x,
+                        self.min_y,
+                        self.max_x - self.min_x,
+                        self.max_y - self.min_y,
+                    ),
+                )
                 .set("width", self.with_unit(self.max_x - self.min_x))
                 .set("height", self.with_unit(self.max_y - self.min_y));
         } else {
             log::debug!("Crop disable");
             doc = doc
-                // .set(
-                //     "viewbox",
-                //     (
-                //         0,
-                //         0,
-                //         format!("{}{}", self.max_x, unit),
-                //         format!("{}{}", self.max_y, unit),
-                //     ),
-                // )
+                .set("viewbox", (0, 0, self.max_x, self.max_y))
                 .set("width", self.with_unit(self.max_x))
                 .set("height", self.with_unit(self.max_y));
         }
