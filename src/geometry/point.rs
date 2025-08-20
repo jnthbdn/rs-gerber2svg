@@ -1,6 +1,4 @@
-use gerber_parser::gerber_types::{CoordinateFormat, CoordinateNumber, Coordinates};
-
-use crate::error::{ConversionError, Gerber2SvgError};
+use gerber_parser::gerber_types::{CoordinateOffset, Coordinates};
 
 #[derive(Debug, Clone)]
 pub struct Point {
@@ -14,6 +12,13 @@ impl Point {
     }
 
     pub fn from_coordinates(coord: Coordinates, default: &Point) -> Self {
+        Point {
+            x: coord.x.map(|x| x.into()).unwrap_or(default.x),
+            y: coord.y.map(|x| x.into()).unwrap_or(default.y),
+        }
+    }
+
+    pub fn from_offset_coordinates(coord: CoordinateOffset, default: &Point) -> Self {
         Point {
             x: coord.x.map(|x| x.into()).unwrap_or(default.x),
             y: coord.y.map(|x| x.into()).unwrap_or(default.y),
