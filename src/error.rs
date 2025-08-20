@@ -15,6 +15,9 @@ pub enum ImportError {
 
     #[error("No coordinate format specified in file. Please ensure that the `%FS...*%` command is present.")]
     MissingCoordinatesFormat,
+
+    #[error("No unit specified in file. Please ensure that the `%MOIN*%` or `%MOMM*%` command is present.")]
+    MissingUnit,
 }
 
 #[derive(Error, Debug)]
