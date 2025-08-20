@@ -26,21 +26,4 @@ impl Point {
             None => default.clone(),
         }
     }
-
-    pub fn into_coordinates(
-        &self,
-        format: CoordinateFormat,
-    ) -> Result<Coordinates, Gerber2SvgError> {
-        Ok(Coordinates {
-            x: Some(
-                CoordinateNumber::try_from(self.x)
-                    .map_err(|x| ConversionError::PointToCoordError(x.to_string()))?,
-            ),
-            y: Some(
-                CoordinateNumber::try_from(self.y)
-                    .map_err(|x| ConversionError::PointToCoordError(x.to_string()))?,
-            ),
-            format: format,
-        })
-    }
 }
