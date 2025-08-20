@@ -1,8 +1,8 @@
 use std::fs::File;
 use std::io::BufReader;
 
+use gerber_parser::gerber_types::FunctionCode;
 use gerber_parser::gerber_types::{self, Aperture, Command, GCode, InterpolationMode, Unit};
-use gerber_parser::gerber_types::{CoordinateOffset, FunctionCode};
 use gerber_parser::{parse, GerberDoc};
 
 use log::warn;
@@ -141,7 +141,14 @@ impl Gerber2SVG {
                                         warn!("Offset is required in Counter/Clockwise Circular mode. Operation skipped.");
                                         continue;
                                     }
-                                    self.add_arc_segment(&target, offset.as_ref().unwrap())
+
+                                    let offset = Point::from_offset_coordinates(
+                                        offset.clone().unwrap(),
+                                        &self.position,
+                                    );
+                                    let is_clockwise =
+                                        self.draw_state == InterpolationMode::ClockwiseCircular;
+                                    self.add_arc_segment(&target, &offset, is_clockwise);
                                 }
 
                                 self.move_position(&target);
@@ -182,7 +189,7 @@ impl Gerber2SVG {
                     },
                     FunctionCode::MCode(_) => (),
                 },
-                Command::ExtendedCode(_) => (),
+                Command::ExtendedCode(_e) => (),
             };
         }
 
@@ -253,9 +260,34 @@ impl Gerber2SVG {
         self.check_bbox(target.x, target.y, stroke / 2.0, stroke / 2.0);
     }
 
-    fn add_arc_segment(&mut self, _target: &Point, _offset: &CoordinateOffset) -> () {
-        log::warn!("Arc are not supported ! Skip.",);
-        //TODO : self.check_bbox(...);
+    fn add_arc_segment(&mut self, target: &Point, offset: &Point, is_clockwise: bool) -> () {
+        log::warn!("Arc are not supported ! Skip.");
+
+        let mut path = std::mem::take(&mut self.current_path_data);
+
+        log::debug!(
+            "Draw Arc from {:?} to {:?} with {:?} offset",
+            self.position,
+            &target,
+            offset
+        );
+
+        if path.is_empty() {
+            path = path.move_to((self.position.x, self.position.y));
+        }
+
+        self.current_path_data = path.elliptical_arc_to((
+            offset.x,
+            offset.y,
+            0,
+            0,
+            if is_clockwise { 1 } else { 0 },
+            target.x,
+            target.y,
+        ));
+
+        let stroke = self.get_path_stroke();
+        self.check_bbox(target.x, target.y, stroke / 2.0, stroke / 2.0);
     }
 
     fn move_position(&mut self, coord: &Point) -> () {
@@ -294,9 +326,10 @@ impl Gerber2SVG {
             .expect("No selected aperture for storke")
         {
             Aperture::Circle(c) => c.diameter,
+            Aperture::Rectangle(r) => r.x.max(r.y),
             _ => {
                 log::warn!(
-                    "Unsupported stroke aperture other than Circle.\r\n{:#?}",
+                    "Unsupported stroke aperture.\r\n{:#?}",
                     self.selected_aperture
                 );
                 0.0
