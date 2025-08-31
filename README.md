@@ -30,7 +30,7 @@ Command to display help:
 | -V           | --version             | No       | Prints version information                                            |
 | -v           | --verbose             | No       | Be more verbose and show gerber comments                              |
 
-With any option other than `--input` or `-i`, the SVG will be printed to standard output.
+With any option other than `--output` or `-o`, the SVG will be printed to standard output.
 
 ## To Do
 
